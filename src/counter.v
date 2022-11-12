@@ -11,7 +11,7 @@ module seven_segment_seconds #( parameter MAX_COUNT = 1000 ) (
     assign io_out[6:0] = led_out;
 
     // external clock is 1000Hz, so need 10 bit counter
-    reg [9:0] second_counter;
+  reg [511:0] second_counter;
     reg [3:0] digit;
 
     always @(posedge clk) begin
@@ -21,7 +21,7 @@ module seven_segment_seconds #( parameter MAX_COUNT = 1000 ) (
             digit <= 0;
         end else begin
             // if up to 16e6
-            if (second_counter == MAX_COUNT) begin
+          if (second_counter[511]) begin
                 // reset
                 second_counter <= 0;
 
