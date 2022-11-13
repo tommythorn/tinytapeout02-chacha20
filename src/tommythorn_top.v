@@ -33,6 +33,7 @@ module chacha20_qr(
    assign b2 = {b2_[24:0],b2_[31:25]};
 endmodule
 
+`ifdef SIMULATE
 module chacha20_qr_tb;
    reg [31:0]  a;
    reg [31:0]  b;
@@ -63,6 +64,7 @@ module chacha20_qr_tb;
         $display("good");
    end
 endmodule
+`endif
 
 module tommythorn_top (
   input [7:0]  io_in,
@@ -102,6 +104,7 @@ module tommythorn_top (
    end
 endmodule
 
+`ifdef SIMULATE
 module tommythorn_top_tb;
    reg [127:0]  abcd = 128'h 2f5ee82ec5941bfac7e80863910aee32;
    reg [127:0]  abcd_out;
@@ -137,3 +140,4 @@ module tommythorn_top_tb;
       end
    end
 endmodule
+`endif
