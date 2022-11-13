@@ -33,41 +33,6 @@ module chacha20_qr(
    assign b2 = {b2_[24:0],b2_[31:25]};
 endmodule
 
-
-module tommythorn_top #( parameter MAX_COUNT = 1000 ) (
-  input [7:0]  io_in,
-  output [7:0] io_out
-);
-
-   // Alas we don't have space for 512 FFs, so we just exercize the
-   // quarter-round
-
-   reg [31:0]  a;
-   reg [31:0]  b;
-   reg [31:0]  c;
-   reg [31:0]  d;
-   wire [31:0] a_out;
-   wire [31:0] b_out;
-   wire [31:0] c_out;
-   wire [31:0] d_out;
-
-   chacha20_qr qr(a, b, c, d, a_out, b_out, c_out, d_out);
-
-   wire        clk = io_in[0];
-   wire        we = io_in[1];
-
-   // Reading out 8-bit at a time from 128, thus 16
-   reg [3:0]   sel;
-   assign io_out = {a_out,b_out,c_out,d_out} << (sel * 8);
-
-   always @(posedge clk) begin
-      sel <= io_in[7:4];
-
-      if (we)
-        {a,b,c,d} <= {{a,b,c,d} << 4, io_in[7:4]};
-   end
-endmodule
-
 module chacha20_qr_tb;
    reg [31:0]  a;
    reg [31:0]  b;
@@ -96,5 +61,79 @@ module chacha20_qr_tb;
                  a_out, b_out, c_out, d_out);
       else
         $display("good");
+   end
+endmodule
+
+module tommythorn_top (
+  input [7:0]  io_in,
+  output [7:0] io_out
+);
+
+   // Alas we don't have space for 512 FFs, so we just exercize the
+   // quarter-round
+
+   reg [31:0]  a;
+   reg [31:0]  b;
+   reg [31:0]  c;
+   reg [31:0]  d;
+   wire [31:0] a_out;
+   wire [31:0] b_out;
+   wire [31:0] c_out;
+   wire [31:0] d_out;
+
+   chacha20_qr qr(a, b, c, d, a_out, b_out, c_out, d_out);
+
+   wire        clk = io_in[0];
+   wire        we = io_in[1];
+
+   // Reading out 8-bit at a time from 128, thus 16
+   reg [3:0]   sel;
+   assign io_out = {a_out,b_out,c_out,d_out} >> (sel * 8);
+
+   always @(posedge clk) begin
+      sel <= io_in[7:4];
+
+      if (we) begin
+         {a,b,c,d} = {{a,b,c,d}, io_in[7:4]};
+         $display("top: shifting in %x, getting %x", io_in[7:4], {a,b,c,d});
+      end
+
+      $display("top: reading out %d byte of %x = %x", sel, {a_out,b_out,c_out,d_out}, io_out[7:4]);
+   end
+endmodule
+
+module tommythorn_top_tb;
+   reg [127:0]  abcd = 128'h 2f5ee82ec5941bfac7e80863910aee32;
+   reg [127:0]  abcd_out;
+
+   reg          clock = 0;
+   reg          we = 0;
+
+   wire [7:0]   io_out;
+
+   tommythorn_top tt({abcd[127:124], 2'b0, we, clock}, io_out);
+
+   reg [6:0]    i;
+
+   initial begin
+      $display("Testing %x", abcd);
+      $display("  top %x", abcd[127:124]);
+
+      #10 clock = 0;
+
+      for (i = 0; i < 32; i = i + 1) begin
+         we = 1;
+         #10 clock = 1;
+         #10 clock = 0;
+         abcd = abcd << 4;
+      end
+
+      #10 we = 0;
+      for (i = 0; i < 16; i = i + 1) begin
+         #10 clock = 0;
+         abcd[127:124] = i;
+         #10 clock = 1;
+         #10 $display("%d: %x", i, io_out);
+      end
    end
 endmodule
